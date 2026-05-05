@@ -108,33 +108,51 @@ SQL RULES:
 - Use NULLIF to prevent division by zero
 `;
 
+// ─── Helper: build prompt for any custom DB ──────────────────────────────────
+function buildCustomPrompt(schemaText) {
+  return `You are a PostgreSQL expert. Convert English questions into precise SQL SELECT queries.
+
+DATABASE SCHEMA (auto-discovered):
+${schemaText}
+
+SQL RULES:
+- Return ONLY the raw SQL query — no explanation, no markdown, no backticks, no comments
+- Only SELECT queries — never INSERT, UPDATE, DELETE, DROP, TRUNCATE, ALTER
+- Use table aliases for clarity
+- Use ILIKE for case-insensitive text matching with % wildcards
+- Default LIMIT 20 unless user specifies more (max 100)
+- Round decimal values to 2 places
+- Use NULLIF to prevent division by zero
+- If a column type is numeric, cast appropriately before arithmetic
+`;
+}
+
 
 // ─── Helper: call Groq to generate SQL ───────────────────────────────────────
-async function generateSQL(question, errorContext = null) {
+async function generateSQL(question, errorContext = null, customPrompt = null) {
   const userMessage = errorContext
     ? `Question: ${question}\n\nYour previous SQL attempt failed with this error:\n"${errorContext}"\n\nFix the SQL and return only the corrected query.`
     : `Question: ${question}`;
 
   const completion = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile", // Only active Llama3.3-70B on Groq as of 2025
+    model: "llama-3.3-70b-versatile",
     max_tokens: 512,
     temperature: 0,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: customPrompt || SYSTEM_PROMPT },
       { role: "user", content: userMessage },
     ],
   });
 
   let sql = completion.choices[0].message.content.trim();
-  // Strip accidental markdown fences
   sql = sql.replace(/```sql|```/gi, "").trim();
   return sql;
 }
 
-// ─── Helper: run SQL on Supabase ─────────────────────────────────────────────
-async function runQuery(sql) {
+// ─── Helper: run SQL on any PostgreSQL DB ────────────────────────────────────
+async function runQuery(sql, connectionString = null) {
   const client = new Client({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString || process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
   });
   try {
@@ -148,64 +166,129 @@ async function runQuery(sql) {
   }
 }
 
+// ─── Route: Connect to any DB + discover schema ─────────────────────────────
+app.post("/api/connect", async (req, res) => {
+  const { connectionString } = req.body;
+  if (!connectionString || !connectionString.trim()) {
+    return res.status(400).json({ error: "Connection string is required." });
+  }
+
+  const client = new Client({
+    connectionString: connectionString.trim(),
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 8000,
+  });
+
+  try {
+    await client.connect();
+
+    // Auto-discover all public tables and their columns
+    const schemaResult = await client.query(`
+      SELECT
+        c.table_name,
+        c.column_name,
+        c.data_type,
+        c.is_nullable,
+        tc.constraint_type
+      FROM information_schema.columns c
+      LEFT JOIN information_schema.key_column_usage kcu
+        ON c.table_name = kcu.table_name AND c.column_name = kcu.column_name
+        AND c.table_schema = kcu.table_schema
+      LEFT JOIN information_schema.table_constraints tc
+        ON kcu.constraint_name = tc.constraint_name
+        AND kcu.table_schema = tc.table_schema
+      WHERE c.table_schema = 'public'
+      ORDER BY c.table_name, c.ordinal_position;
+    `);
+
+    // Get row counts per table
+    const tableNames = [...new Set(schemaResult.rows.map(r => r.table_name))];
+    const rowCounts = {};
+    for (const t of tableNames) {
+      try {
+        const cnt = await client.query(`SELECT COUNT(*) FROM "${t}"`);
+        rowCounts[t] = parseInt(cnt.rows[0].count);
+      } catch (_) { rowCounts[t] = 0; }
+    }
+
+    await client.end();
+
+    // Build tables object for UI
+    const tables = {};
+    schemaResult.rows.forEach(row => {
+      if (!tables[row.table_name]) tables[row.table_name] = [];
+      tables[row.table_name].push({
+        column: row.column_name,
+        type: row.data_type,
+        nullable: row.is_nullable === "YES",
+        pk: row.constraint_type === "PRIMARY KEY",
+      });
+    });
+
+    // Build schema string for LLM prompt
+    const schemaText = Object.entries(tables)
+      .map(([tbl, cols]) => {
+        const colStr = cols.map(c => `${c.column} ${c.type.toUpperCase()}${c.pk ? " PK" : ""}`).join(", ");
+        return `${tbl}(${colStr})`;
+      })
+      .join("\n");
+
+    return res.json({
+      tables,
+      schemaText,
+      rowCounts,
+      tableCount: Object.keys(tables).length,
+      columnCount: schemaResult.rows.length,
+    });
+  } catch (err) {
+    await client.end().catch(() => {});
+    console.error("Connect error:", err.message);
+    return res.status(400).json({ error: `Connection failed: ${err.message}` });
+  }
+});
+
 // ─── Route: Generate SQL + Execute (with self-correction) ────────────────────
 app.post("/api/query", async (req, res) => {
-  const { question } = req.body;
+  const { question, connectionString, customSchema } = req.body;
 
   if (!question || question.trim().length < 3) {
     return res.status(400).json({ error: "Question is too short." });
   }
 
+  // Use custom prompt if custom DB, else IPL prompt
+  const prompt = customSchema ? buildCustomPrompt(customSchema) : null;
+  const dbConn = connectionString || null;
+
   // ── Attempt 1: generate SQL ──
   let sql;
   try {
-    sql = await generateSQL(question);
+    sql = await generateSQL(question, null, prompt);
   } catch (err) {
     console.error("Groq error:", err.message);
     return res.status(500).json({ error: "Failed to generate SQL from Groq." });
   }
 
-  // Safety check — only SELECT allowed
   const isSelect = (q) => q.trim().split(/\s+/)[0].toUpperCase() === "SELECT";
   if (!isSelect(sql)) {
     return res.status(400).json({ error: "Only SELECT queries are allowed.", sql });
   }
 
   // ── Run query (attempt 1) ──
-  let { success, result, error } = await runQuery(sql);
+  let { success, result, error } = await runQuery(sql, dbConn);
 
-  // ── Self-correction: if DB failed, ask Groq to fix it ──
+  // ── Self-correction ──
   if (!success) {
     console.log(`⚠️  Attempt 1 failed: ${error}`);
-    console.log(`🔄  Self-correcting with error context...`);
-
     try {
-      sql = await generateSQL(question, error);
+      sql = await generateSQL(question, error, prompt);
     } catch (groqErr) {
-      console.error("Groq retry error:", groqErr.message);
-      return res.status(500).json({
-        error: "Query failed and self-correction also failed.",
-        detail: error,
-        sql,
-      });
+      return res.status(500).json({ error: "Query failed and self-correction also failed.", detail: error, sql });
     }
-
-    if (!isSelect(sql)) {
-      return res.status(400).json({ error: "Only SELECT queries are allowed.", sql });
-    }
-
-    // ── Run query (attempt 2) ──
-    ({ success, result, error } = await runQuery(sql));
-
+    if (!isSelect(sql)) return res.status(400).json({ error: "Only SELECT queries are allowed.", sql });
+    ({ success, result, error } = await runQuery(sql, dbConn));
     if (!success) {
-      console.error("❌ Failed after self-correction:", error);
-      return res.status(500).json({
-        error: "Query failed even after self-correction. Try rephrasing.",
-        sql,
-        detail: error,
-      });
+      return res.status(500).json({ error: "Query failed even after self-correction. Try rephrasing.", sql, detail: error });
     }
-
     console.log(`✅ Self-correction succeeded!`);
   }
 

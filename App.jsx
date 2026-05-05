@@ -251,7 +251,7 @@ function ResultsPage({ question, result, error, loading, onBack, onNewQuery }) {
 }
 
 // ── Home Page ──────────────────────────────────────────────────────────────────
-function HomePage({ onQuery, onBrowse }) {
+function HomePage({ onQuery, onBrowse, onConnectDb }) {
   const [question, setQuestion] = useState("");
   const [hovered, setHovered] = useState(null);
 
@@ -273,12 +273,15 @@ function HomePage({ onQuery, onBrowse }) {
             <div style={{ fontSize: 10, color: "#90A4AE", marginTop: -2 }}>Natural Language → SQL</div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {TEAMS.map(t => (
             <span key={t.name} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 36, height: 36, borderRadius: "50%", background: t.color, color: t.text, fontSize: 9, fontWeight: 700, letterSpacing: 0.3, boxShadow: `0 2px 8px ${t.color}55`, border: "2px solid rgba(255,255,255,0.9)" }}>
               {t.name}
             </span>
           ))}
+          <button className="btn btn-ghost" style={{ marginLeft: 8, padding: "7px 14px", fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={onConnectDb}>
+            🔌 Connect DB
+          </button>
         </div>
       </nav>
 
@@ -366,27 +369,159 @@ function HomePage({ onQuery, onBrowse }) {
     </div>
   );
 }
+// ── Connect Page (Custom Database) ──────────────────────────────────────────────
+function ConnectPage({ onConnected, onBack }) {
+  const [connStr, setConnStr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-// ── App Root ──────────────────────────────────────────────────────────────────
+  const handleConnect = async () => {
+    if (!connStr.trim()) return;
+    setLoading(true); setError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ connectionString: connStr.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Connection failed");
+      playSound("success");
+      onConnected({ connectionString: connStr.trim(), ...data });
+    } catch (e) { setError(e.message); playSound("error"); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="page-in" style={{ minHeight: "100vh", background: "#F0F4FF" }}>
+      <nav style={{ background: "#fff", borderBottom: "1px solid #EDE7F6", padding: "0 28px", height: 62, display: "flex", alignItems: "center", gap: 14, boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+        <button className="btn btn-ghost" style={{ padding: "7px 16px" }} onClick={onBack}>← Back to IPL</button>
+        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16 }}>🔌 Connect Your Database</div>
+      </nav>
+      <div style={{ maxWidth: 680, margin: "60px auto", padding: "0 20px" }}>
+        <div style={{ textAlign: "center", marginBottom: 40 }}>
+          <div style={{ fontSize: 52, marginBottom: 16 }}>🗄️</div>
+          <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 32, fontWeight: 700, color: "#1A1A2E", marginBottom: 10 }}>Connect Any PostgreSQL Database</h1>
+          <p style={{ color: "#546E7A", fontSize: 15, lineHeight: 1.6 }}>Paste your PostgreSQL connection string — we'll auto-discover your schema and let you query it in plain English.</p>
+        </div>
+        <div style={{ background: "#fff", borderRadius: 16, padding: 32, boxShadow: "0 4px 24px rgba(0,0,0,0.08)", border: "1.5px solid #E8E0F0" }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "#546E7A", display: "block", marginBottom: 8 }}>PostgreSQL Connection String</label>
+          <textarea
+            value={connStr}
+            onChange={e => setConnStr(e.target.value)}
+            placeholder="postgresql://username:password@host:5432/database"
+            rows={3}
+            style={{ width: "100%", border: "1.5px solid #CFD8DC", borderRadius: 10, padding: "12px 14px", fontSize: 13, fontFamily: "'Courier New',monospace", color: "#1A1A2E", background: "#F8FAFF", resize: "none", transition: "border 0.15s", display: "block" }}
+            onFocus={e => e.target.style.borderColor = "#1565C0"}
+            onBlur={e => e.target.style.borderColor = "#CFD8DC"}
+          />
+          {error && (
+            <div style={{ background: "#FFEBEE", border: "1px solid #EF9A9A", borderRadius: 8, padding: "10px 14px", marginTop: 12, fontSize: 13, color: "#C62828" }}>⚠️ {error}</div>
+          )}
+          <button className="btn btn-blue" style={{ marginTop: 20, width: "100%", padding: 14, fontSize: 15, opacity: loading || !connStr.trim() ? 0.6 : 1 }}
+            onClick={handleConnect} disabled={loading || !connStr.trim()}>
+            {loading ? <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}><Ball size={20} spin /> Connecting & discovering schema...</span> : "🔌 Connect & Discover Schema"}
+          </button>
+        </div>
+        <div style={{ marginTop: 24, background: "#FFF8E1", border: "1px solid #FFE082", borderRadius: 12, padding: "16px 20px" }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#E65100", marginBottom: 8 }}>ℹ️ Supported formats</div>
+          <div style={{ fontSize: 12, color: "#78909C", fontFamily: "'Courier New',monospace", lineHeight: 2 }}>
+            postgresql://user:pass@host:5432/dbname<br />
+            postgres://user:pass@host:5432/dbname?sslmode=require<br />
+            postgresql://project.id:pass@aws-pooler.supabase.com:6543/postgres
+          </div>
+        </div>
+        <div style={{ marginTop: 16, fontSize: 12, color: "#90A4AE", textAlign: "center" }}>🔒 Your connection string is used only for the current session and never stored.</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Custom DB Home (after connected) ──────────────────────────────────────────
+function CustomHomePage({ db, onQuery, onDisconnect }) {
+  const [question, setQuestion] = useState("");
+  const tableNames = Object.keys(db.tables || {});
+
+  return (
+    <div className="page-in-left" style={{ minHeight: "100vh", background: "#F0F4FF" }}>
+      <nav style={{ background: "#1A237E", padding: "0 28px", height: 62, display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 12px rgba(0,0,0,0.2)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <span style={{ fontSize: 22 }}>🗄️</span>
+          <div>
+            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 16, color: "#fff" }}>Custom Database</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)" }}>{db.tableCount} tables · {db.columnCount} columns</div>
+          </div>
+        </div>
+        <button className="btn" style={{ background: "rgba(255,255,255,0.12)", color: "#fff", borderRadius: 8, padding: "7px 16px", fontSize: 13 }} onClick={onDisconnect}>⬅ IPL Mode</button>
+      </nav>
+
+      <div style={{ maxWidth: 860, margin: "0 auto", padding: "32px 20px" }}>
+        {/* Search box */}
+        <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.1)", marginBottom: 28 }}>
+          <textarea value={question} onChange={e => setQuestion(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (question.trim()) { playSound("bat"); onQuery(question.trim()); } } }}
+            placeholder="Ask anything about your database in plain English..."
+            rows={2} style={{ width: "100%", border: "none", padding: "18px 22px", fontSize: 16, background: "transparent", color: "#1A1A2E", resize: "none", fontFamily: "inherit", display: "block" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 18px", borderTop: "1px solid #F0F4F8" }}>
+            <span style={{ fontSize: 12, color: "#90A4AE" }}>Enter to search · Shift+Enter for newline</span>
+            <button className="btn btn-blue" style={{ padding: "9px 22px", fontSize: 14 }} onClick={() => { if (question.trim()) { playSound("bat"); onQuery(question.trim()); } }} disabled={!question.trim()}>▶ Run Query</button>
+          </div>
+        </div>
+
+        {/* Schema explorer */}
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#546E7A", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: 14 }}>📋 Discovered Schema — {db.tableCount} tables</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 12 }}>
+          {tableNames.map(tbl => (
+            <div key={tbl} style={{ background: "#fff", borderRadius: 12, padding: 16, border: "1.5px solid #E8E0F0", boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#1A1A2E" }}>📁 {tbl}</div>
+                {db.rowCounts?.[tbl] !== undefined && (
+                  <span style={{ fontSize: 11, background: "#E3F2FD", color: "#1565C0", padding: "2px 8px", borderRadius: 10, fontWeight: 600 }}>{db.rowCounts[tbl].toLocaleString()} rows</span>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {db.tables[tbl].slice(0, 6).map(col => (
+                  <div key={col.column} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <span style={{ color: col.pk ? "#1565C0" : "#37474F", fontWeight: col.pk ? 600 : 400 }}>{col.pk ? "🔑 " : ""}{col.column}</span>
+                    <span style={{ color: "#90A4AE", fontFamily: "'Courier New',monospace", fontSize: 11 }}>{col.type}</span>
+                  </div>
+                ))}
+                {db.tables[tbl].length > 6 && <div style={{ fontSize: 11, color: "#90A4AE", marginTop: 2 }}>+{db.tables[tbl].length - 6} more columns</div>}
+              </div>
+              <button className="btn" style={{ marginTop: 10, width: "100%", background: "#F0F4FF", color: "#1565C0", borderRadius: 8, padding: "6px 0", fontSize: 12, fontWeight: 600 }}
+                onClick={() => { const q = `Show first 10 rows from ${tbl}`; playSound("click"); onQuery(q); }}>Preview table →</button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+────────────────────
 export default function App() {
-  const [page, setPage] = useState("home");   // "home" | "results"
+  const [page, setPage] = useState("home");   // "home" | "connect" | "customHome" | "results"
   const [browseOpen, setBrowseOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [customDb, setCustomDb] = useState(null);   // { connectionString, tables, schemaText, rowCounts, ... }
 
-  const runQuery = async (q) => {
+  const runQuery = async (q, overrideDb = null) => {
+    const db = overrideDb || customDb;
     setQuestion(q);
     setResult(null);
     setError(null);
     setLoading(true);
     setPage("results");
     try {
+      const body = { question: q };
+      if (db) { body.connectionString = db.connectionString; body.customSchema = db.schemaText; }
       const res = await fetch(`${API_URL}/api/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
@@ -400,10 +535,32 @@ export default function App() {
     }
   };
 
+  const backFromResults = () => {
+    setResult(null); setError(null);
+    setPage(customDb ? "customHome" : "home");
+  };
+
   return (
     <>
       {page === "home" && (
-        <HomePage onQuery={runQuery} onBrowse={() => { playSound("click"); setBrowseOpen(true); }} />
+        <HomePage
+          onQuery={runQuery}
+          onBrowse={() => { playSound("click"); setBrowseOpen(true); }}
+          onConnectDb={() => { playSound("click"); setPage("connect"); }}
+        />
+      )}
+      {page === "connect" && (
+        <ConnectPage
+          onConnected={(db) => { setCustomDb(db); setPage("customHome"); }}
+          onBack={() => setPage("home")}
+        />
+      )}
+      {page === "customHome" && customDb && (
+        <CustomHomePage
+          db={customDb}
+          onQuery={(q) => runQuery(q)}
+          onDisconnect={() => { setCustomDb(null); setPage("home"); }}
+        />
       )}
       {page === "results" && (
         <ResultsPage
@@ -411,7 +568,7 @@ export default function App() {
           result={result}
           error={error}
           loading={loading}
-          onBack={() => { setPage("home"); setResult(null); setError(null); }}
+          onBack={backFromResults}
           onNewQuery={runQuery}
         />
       )}

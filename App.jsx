@@ -498,7 +498,7 @@ function CustomHomePage({ db, onQuery, onDisconnect }) {
   );
 }
 
-────────────────────
+// ── App Root ──────────────────────────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState("home");   // "home" | "connect" | "customHome" | "results"
   const [browseOpen, setBrowseOpen] = useState(false);

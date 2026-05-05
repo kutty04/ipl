@@ -269,8 +269,8 @@ function HomePage({ onQuery, onBrowse, onConnectDb }) {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <Ball size={30} />
           <div>
-            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 17, color: "#1A1A2E" }}>IPL QueryAI</div>
-            <div style={{ fontSize: 10, color: "#90A4AE", marginTop: -2 }}>Natural Language → SQL</div>
+            <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 17, color: "#1A1A2E" }}>DataTalk AI</div>
+            <div style={{ fontSize: 10, color: "#90A4AE", marginTop: -2 }}>Ask your data in plain English</div>
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -293,12 +293,13 @@ function HomePage({ onQuery, onBrowse, onConnectDb }) {
         ))}
 
         <div style={{ position: "relative", zIndex: 2 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>🏟️ IPL 2008–2022 · 260,920 Deliveries</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>🏟️ Featured: IPL 2008–2022 · 260,920 Deliveries</div>
           <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: "clamp(28px,5vw,52px)", fontWeight: 700, color: "#fff", marginBottom: 14, lineHeight: 1.15 }}>
-            Ask your cricket<br />database anything
+            Ask your database<br />anything, in plain English
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginBottom: 40, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
-            Powered by Groq AI · 1,095 matches · Kohli, Dhoni, Rohit & more
+          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginBottom: 40, maxWidth: 500, marginLeft: "auto", marginRight: "auto" }}>
+            No SQL needed. Just type your question — we'll handle the rest.<br />
+            <span style={{ opacity: 0.6, fontSize: 14 }}>Powered by Groq AI · Works with any PostgreSQL database</span>
           </p>
 
           {/* Search box */}
@@ -341,15 +342,36 @@ function HomePage({ onQuery, onBrowse, onConnectDb }) {
         </div>
 
         {/* Browse CTA */}
-        <div style={{ background: "linear-gradient(135deg,#FFF8E1,#FFFDE7)", border: "1.5px solid #FFE082", borderRadius: 16, padding: "28px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginBottom: 40 }}>
+        <div style={{ background: "linear-gradient(135deg,#FFF8E1,#FFFDE7)", border: "1.5px solid #FFE082", borderRadius: 16, padding: "28px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginBottom: 20 }}>
           <div>
             <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: "#1A1A2E", marginBottom: 4 }}>
               🏏 Not sure what to ask?
             </div>
-            <div style={{ fontSize: 14, color: "#78909C" }}>Browse all 20 curated questions · Easy, Medium & Hard</div>
+            <div style={{ fontSize: 14, color: "#78909C" }}>Browse all 20 curated questions · Easy, Medium &amp; Hard</div>
           </div>
           <button className="btn btn-gold" onClick={() => { playSound("click"); onBrowse(); }}>
             Explore Questions →
+          </button>
+        </div>
+
+        {/* Connect Your Own DB promo banner */}
+        <div style={{ background: "linear-gradient(135deg,#E8EAF6,#EDE7F6)", border: "1.5px solid #C5CAE9", borderRadius: 16, padding: "28px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap", marginBottom: 40 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+            <div style={{ fontSize: 36, flexShrink: 0 }}>🔌</div>
+            <div>
+              <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontWeight: 700, fontSize: 18, color: "#1A1A2E", marginBottom: 6 }}>
+                Not a cricket fan? No problem.
+              </div>
+              <div style={{ fontSize: 14, color: "#5C6BC0", lineHeight: 1.6 }}>
+                Connect your own PostgreSQL database and ask questions from it — in plain English, no SQL needed. Works with any data: sales, inventory, users, logs, you name it.
+              </div>
+            </div>
+          </div>
+          <button className="btn" style={{ background: "#3949AB", color: "#fff", borderRadius: 12, padding: "12px 24px", fontSize: 15, fontWeight: 700, flexShrink: 0, boxShadow: "0 4px 16px rgba(57,73,171,0.35)", transition: "all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(57,73,171,0.45)"; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 16px rgba(57,73,171,0.35)"; }}
+            onClick={() => { playSound("click"); onConnectDb(); }}>
+            Connect Your Database →
           </button>
         </div>
 
@@ -363,7 +385,7 @@ function HomePage({ onQuery, onBrowse, onConnectDb }) {
               </span>
             ))}
           </div>
-          <div style={{ marginTop: 20, fontSize: 12, color: "#CFD8DC" }}>IPL QueryAI · Groq Llama3.3-70B · Supabase PostgreSQL</div>
+          <div style={{ marginTop: 20, fontSize: 12, color: "#CFD8DC" }}>DataTalk AI · Groq Llama3.3-70B · Supabase PostgreSQL</div>
         </div>
       </div>
     </div>

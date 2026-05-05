@@ -292,14 +292,23 @@ function HomePage({ onQuery, onBrowse, onConnectDb }) {
           <div key={i} style={{ position: "absolute", ...p, opacity: 0.2, animation: `float 3.5s ease-in-out ${p.d} infinite` }}><Ball size={p.s} /></div>
         ))}
 
+        {/* Floating callout: Not a cricket fan? */}
+        <div style={{ position: "absolute", top: 20, right: 24, background: "rgba(255,255,255,0.1)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 14, padding: "14px 18px", maxWidth: 210, textAlign: "left", zIndex: 5 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.5)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>🔌 Your Database</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.9)", lineHeight: 1.5, marginBottom: 10 }}>Not a cricket fan? Connect your own database and query it the same way.</div>
+          <button className="btn" onClick={onConnectDb} style={{ background: "rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 12, fontWeight: 600, border: "1px solid rgba(255,255,255,0.3)", width: "100%", transition: "all 0.15s" }}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.3)"}
+            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+          >Connect your database →</button>
+        </div>
+
         <div style={{ position: "relative", zIndex: 2 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>🏟️ Featured: IPL 2008–2022 · 260,920 Deliveries</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 16 }}>🏟️ IPL 2008–2022 · 260,920 Deliveries</div>
           <h1 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: "clamp(28px,5vw,52px)", fontWeight: 700, color: "#fff", marginBottom: 14, lineHeight: 1.15 }}>
-            Ask your database<br />anything, in plain English
+            Ask your cricket<br />database anything
           </h1>
-          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginBottom: 40, maxWidth: 500, marginLeft: "auto", marginRight: "auto" }}>
-            No SQL needed. Just type your question — we'll handle the rest.<br />
-            <span style={{ opacity: 0.6, fontSize: 14 }}>Powered by Groq AI · Works with any PostgreSQL database</span>
+          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 16, marginBottom: 40, maxWidth: 480, marginLeft: "auto", marginRight: "auto" }}>
+            Powered by Groq AI · 1,095 matches · Kohli, Dhoni, Rohit &amp; more
           </p>
 
           {/* Search box */}

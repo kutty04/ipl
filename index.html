@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IPL QueryAI — Ask Your Cricket Database</title>
+    <meta name="description" content="Query IPL cricket statistics using natural language. Powered by Groq AI and PostgreSQL." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet" />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: 'Inter', sans-serif; background: #FFF8F0; color: #1A1A2E; }
+      ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #CFD8DC; border-radius: 3px; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+      @keyframes slideIn { from{opacity:0;transform:translateX(40px)} to{opacity:1;transform:translateX(0)} }
+      @keyframes slideInLeft { from{opacity:0;transform:translateX(-40px)} to{opacity:1;transform:translateX(0)} }
+      @keyframes drawerIn { from{transform:translateX(100%)} to{transform:translateX(0)} }
+      @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+      @keyframes rowIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+      .spin { animation: spin 1.1s linear infinite; }
+      .float { animation: float 3s ease-in-out infinite; }
+      .page-in { animation: slideIn 0.32s cubic-bezier(.25,.46,.45,.94) forwards; }
+      .page-in-left { animation: slideInLeft 0.32s cubic-bezier(.25,.46,.45,.94) forwards; }
+      .drawer-in { animation: drawerIn 0.3s cubic-bezier(.25,.46,.45,.94) forwards; }
+      .fade-up { animation: fadeUp 0.4s ease forwards; }
+      .btn { font-family: inherit; cursor: pointer; border: none; transition: all 0.15s; }
+      .btn:active { transform: scale(0.96); }
+      .btn-blue { background:#1565C0; color:#fff; border-radius:12px; padding:12px 28px; font-size:15px; font-weight:600; }
+      .btn-blue:hover { background:#0D47A1; transform:translateY(-1px); box-shadow:0 6px 20px rgba(21,101,192,0.35); }
+      .btn-gold { background:linear-gradient(135deg,#FFB300,#FF8F00); color:#1A0000; border-radius:12px; padding:12px 28px; font-size:15px; font-weight:700; }
+      .btn-gold:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,179,0,0.4); }
+      .btn-ghost { background:transparent; color:#546E7A; border:1.5px solid #CFD8DC; border-radius:10px; padding:9px 20px; font-size:14px; font-weight:500; }
+      .btn-ghost:hover { background:#ECEFF1; border-color:#90A4AE; color:#1A1A2E; }
+      .q-btn { background:#fff; border:1.5px solid #E8E0F0; border-radius:10px; padding:11px 14px; font-size:13px; color:#37474F; text-align:left; width:100%; font-family:inherit; line-height:1.4; transition:all 0.18s; cursor:pointer; }
+      .q-btn:hover { border-color:#1565C0; background:#E3F2FD; color:#0D47A1; transform:translateY(-1px); box-shadow:0 3px 12px rgba(21,101,192,0.15); }
+      .q-btn:active { transform:scale(0.98); }
+      .result-table { width:100%; border-collapse:collapse; font-size:13.5px; }
+      .result-table th { background:#1565C0; color:#fff; padding:10px 16px; text-align:left; font-weight:600; font-size:11px; letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+      .result-table td { padding:10px 16px; border-bottom:1px solid #EEF2F8; color:#37474F; white-space:nowrap; }
+      .result-table tr:nth-child(even) td { background:#F8FAFF; }
+      .result-table tr:hover td { background:#EDF3FF !important; }
+      .row-anim { animation: rowIn 0.3s ease both; }
+      .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:100; display:flex; justify-content:flex-end; }
+      textarea:focus, input:focus { outline:none; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/main.jsx"></script>
+  </body>
+</html>
